@@ -30,22 +30,27 @@ jobs:
     runs-on: ubuntu-latest
     needs: validate
     defaults:
-      run:
-        working-directory: infra
+        run:
+            working-directory: infra
     steps:
       - uses: actions/checkout@v4
 
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.6.6
+
       - uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::468611216525:role/github-oidc-deployer
-          aws-region: ${{ env.AWS_REGION }}
+            role-to-assume: arn:aws:iam::468611216525:role/github-oidc-deployer
+            aws-region: ${{ env.AWS_REGION }}
 
       - run: terraform init -input=false
       - run: terraform plan -no-color > plan.txt
 
       - uses: marocchino/sticky-pull-request-comment@v2
         with:
-          path: infra/plan.txt
+            path: infra/plan.txt
+
 
 #   build:
 #     runs-on: ubuntu-latest
