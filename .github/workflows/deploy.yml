@@ -26,36 +26,10 @@ jobs:
       - run: terraform init -input=false
       - run: terraform validate
 
-  build:
-    runs-on: ubuntu-latest
-    needs: validate
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: arn:aws:iam::468611216525:role/github-oidc-deployer
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Get ECR URL from Terraform
-        working-directory: infra
-        run: |
-          terraform init -input=false
-          echo "ECR=$(terraform output -raw ecr_repository_url)" >> $GITHUB_ENV
-
-      - name: Build & Push Image
-        working-directory: app
-        run: |
-          aws ecr get-login-password \
-            | docker login --username AWS --password-stdin $ECR
-          docker build -t app .
-          docker tag app:latest $ECR:latest
-          docker push $ECR:latest
-
   plan:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
-    needs: build
+    needs: validate
     defaults:
       run:
         working-directory: infra
@@ -73,6 +47,32 @@ jobs:
       - uses: marocchino/sticky-pull-request-comment@v2
         with:
           path: infra/plan.txt
+          
+#   build:
+#     runs-on: ubuntu-latest
+#     needs: validate
+#     steps:
+#       - uses: actions/checkout@v4
+
+#       - uses: aws-actions/configure-aws-credentials@v4
+#         with:
+#           role-to-assume: arn:aws:iam::468611216525:role/github-oidc-deployer
+#           aws-region: ${{ env.AWS_REGION }}
+
+#       - name: Get ECR URL from Terraform
+#         working-directory: infra
+#         run: |
+#           terraform init -input=false
+#           echo "ECR=$(terraform output -raw ecr_repository_url)" >> $GITHUB_ENV
+
+#       - name: Build & Push Image
+#         working-directory: app
+#         run: |
+#           aws ecr get-login-password \
+#             | docker login --username AWS --password-stdin $ECR
+#           docker build -t app .
+#           docker tag app:latest $ECR:latest
+#           docker push $ECR:latest
 
 #   deploy:
 #     if: github.ref == 'refs/heads/main'
